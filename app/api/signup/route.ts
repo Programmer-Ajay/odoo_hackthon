@@ -1,21 +1,26 @@
 import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
+import dbConnect from "@/lib/db";
+import Company from "@/model/company";
+import User from "@/model/user";
 
-const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret_key";
+const JWT_SECRET = process.env.JWT_SECRET!;
 
 export async function POST(req: NextRequest) {
     try {
+        await dbConnect();
         const data = await req.json();
-        const ready = data.name && data.email && data.password && data.country;
+        const ready = data.name && data.email && data.password && data.country && data.baseCurrency;
         if (!ready) {
             return NextResponse.json({ "success": false, "message": "Please fill all the fields" }, { status: 400 })
         }
-        const { name, email, password, country } = data;
+        const { name, email, password, country, baseCurrency } = data;
 
         const company = await Company.create({
             name: `${name}'s Company`,
             country,
+            baseCurrency, 
         })
         
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -23,10 +28,9 @@ export async function POST(req: NextRequest) {
         const user = await User.create({
             name,
             email,
-            password: hashedPassword,
+            passwordHash: hashedPassword, 
             role: "Admin",
-            company_id: company._id,
-            country,
+            companyId: company._id, 
         })
 
         const token = jwt.sign(
@@ -43,7 +47,7 @@ export async function POST(req: NextRequest) {
                 name: user.name,
                 email: user.email,
                 role: user.role,
-                country: user.country
+                companyId: user.companyId
             }
         }, { status: 200 });
 

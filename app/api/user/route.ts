@@ -1,18 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
+import dbConnect from "@/lib/db";
+import User from "@/model/user";
 
-const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret_key";
+const JWT_SECRET = process.env.JWT_SECRET!;
 
 export async function GET(req: NextRequest) {
     try {
+        await dbConnect();
+        
         let token = req.cookies.get("token")?.value;
-
-        if (!token) {
-            const authHeader = req.headers.get("authorization");
-            if (authHeader && authHeader.startsWith("Bearer ")) {
-                token = authHeader.split(" ")[1];
-            }
-        }
 
         if (!token) {
             return NextResponse.json({ "success": false, "message": "Unauthorized: No token provided" }, { status: 401 });
@@ -21,7 +18,7 @@ export async function GET(req: NextRequest) {
         try {
             const decoded: any = jwt.verify(token, JWT_SECRET);
             
-            const user = await User.findById(decoded.id).select("-password");
+            const user = await User.findById(decoded.id).select("-passwordHash"); // Exclude passwordHash
 
             if (!user) {
                 return NextResponse.json({ "success": false, "message": "User not found" }, { status: 404 });

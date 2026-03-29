@@ -1,11 +1,14 @@
 import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
+import dbConnect from "@/lib/db";
+import User from "@/model/user";
 
-const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret_key";
+const JWT_SECRET = process.env.JWT_SECRET!;
 
 export async function POST(req: NextRequest) {
     try {
+        await dbConnect();
         const { email, password } = await req.json();
 
         if (!email || !password) {
@@ -18,7 +21,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ "success": false, "message": "Invalid email or password" }, { status: 401 });
         }
 
-        const isPasswordMatch = await bcrypt.compare(password, user.password);
+        const isPasswordMatch = await bcrypt.compare(password, user.passwordHash); // Match schema: passwordHash
 
         if (!isPasswordMatch) {
             return NextResponse.json({ "success": false, "message": "Invalid email or password" }, { status: 401 });
@@ -38,7 +41,7 @@ export async function POST(req: NextRequest) {
                 name: user.name,
                 email: user.email,
                 role: user.role,
-                country: user.country
+                companyId: user.companyId
             }
         }, { status: 200 });
 
