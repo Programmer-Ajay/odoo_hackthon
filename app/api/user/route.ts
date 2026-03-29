@@ -1,36 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
-import dbConnect from "@/lib/db";
+import connectDB from "@/lib/db";
 import User from "@/model/user";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
 export async function GET(req: NextRequest) {
     try {
-        await dbConnect();
+        await connectDB();
         
-        let token = req.cookies.get("token")?.value;
+        const token = req.cookies.get("token")?.value;
 
         if (!token) {
-            return NextResponse.json({ "success": false, "message": "Unauthorized: No token provided" }, { status: 401 });
+            return NextResponse.json({ success: false, message: "Unauthorized: No token provided" }, { status: 401 });
         }
 
         try {
-            const decoded: any = jwt.verify(token, JWT_SECRET);
+            const decoded = jwt.verify(token, JWT_SECRET) as { id: string, email: string, role: string };
             
             const user = await User.findById(decoded.id).select("-passwordHash"); // Exclude passwordHash
 
             if (!user) {
-                return NextResponse.json({ "success": false, "message": "User not found" }, { status: 404 });
+                return NextResponse.json({ success: false, message: "User not found" }, { status: 404 });
             }
 
             return NextResponse.json({
-                "success": true,
-                "user": user
+                success: true,
+                user: user
             }, { status: 200 });
 
         } catch (error) {
-            return NextResponse.json({ "success": false, "message": "Unauthorized: Invalid token" }, { status: 401 });
+            console.error("Token verification failed", error);
+            return NextResponse.json({ success: false, message: "Unauthorized: Invalid token" }, { status: 401 });
         }
 
     } catch (error) {
@@ -41,19 +42,20 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
     try {
-        await dbConnect();
+        await connectDB();
 
         // 1. Verify the requester is authenticated (Admin or Manager usually create users)
         const token = req.cookies.get("token")?.value;
         if (!token) {
-            return NextResponse.json({ "success": false, "message": "Unauthorized" }, { status: 401 });
+            return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
         }
 
-        let decoded: any;
+        let decoded: { id: string, email: string, role: string };
         try {
-            decoded = jwt.verify(token, JWT_SECRET);
-        } catch (err) {
-            return NextResponse.json({ "success": false, "message": "Invalid token" }, { status: 401 });
+            decoded = jwt.verify(token, JWT_SECRET) as { id: string, email: string, role: string };
+        } catch (error) {
+            console.error("Token verification failed", error);
+            return NextResponse.json({ success: false, message: "Invalid token" }, { status: 401 });
         }
 
         const creator = await User.findById(decoded.id);
@@ -83,6 +85,7 @@ export async function POST(req: NextRequest) {
             role,
             companyId: creator.companyId,
             managerId: managerId || null,
+            isManagerApprover: role === 'Manager' || role === 'Admin'
         });
 
         return NextResponse.json({

@@ -2,7 +2,7 @@
 
 import Sidebar from "./Sidebar";  // ✅ import your Sidebar
 
-export default function DashboardLayout({ children }: any) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-gray-100">
 

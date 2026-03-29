@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
-import dbConnect from "@/lib/db";
+import connectDB from "@/lib/db";
 import Company from "@/model/company";
 import User from "@/model/user";
 
@@ -9,7 +9,7 @@ const JWT_SECRET = process.env.JWT_SECRET!;
 
 export async function POST(req: NextRequest) {
     try {
-        await dbConnect();
+        await connectDB();
         const data = await req.json();
         const ready = data.name && data.email && data.password && data.country && data.baseCurrency;
         if (!ready) {
@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
             passwordHash: hashedPassword, 
             role: "Admin",
             companyId: company._id, 
+            isManagerApprover: true // Admin is always an approver by default
         })
 
         const token = jwt.sign(

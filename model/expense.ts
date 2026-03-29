@@ -28,6 +28,7 @@ export interface IExpense extends Document {
   expenseLines: IExpenseLine[];
   status: 'Pending' | 'Approved' | 'Rejected';
   appliedRuleId?: mongoose.Types.ObjectId;
+  currentApproverId?: mongoose.Types.ObjectId;
   approvalHistory: IApprovalHistory[];
   createdAt: Date;
   updatedAt: Date;
@@ -84,7 +85,11 @@ const expenseSchema: Schema<IExpense> = new Schema({
   appliedRuleId: { 
     type: Schema.Types.ObjectId, 
     ref: 'ApprovalRule' 
-},
+  },
+  currentApproverId: {
+    type: Schema.Types.ObjectId,
+    ref: 'User'
+  },
   
   approvalHistory: [{
     approverId: { 
@@ -98,7 +103,7 @@ const expenseSchema: Schema<IExpense> = new Schema({
     comments: { type: String },
     actionDate: { type: Date }
   }]
-}, { timestamps: true });
+}, { timestamps: true });;
 
 const Expense: Model<IExpense> = mongoose.models.Expense || mongoose.model<IExpense>('Expense', expenseSchema);
 

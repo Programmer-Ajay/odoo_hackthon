@@ -16,6 +16,10 @@ const approvalRuleSchema : Schema<IApprovalRule>= new Schema({
         ref:'Company',
         required:true,
     },
+    ruleName: {
+        type: String,
+        required: true,
+    },
     ruleType:{
       type:String,
       enum: ['Sequential', 'Percentage', 'SpecificApprover', 'Hybrid'], 

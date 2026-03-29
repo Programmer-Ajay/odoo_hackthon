@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import sgMail from "@sendgrid/mail";
-import dbConnect from "@/lib/db";
+import connectDB from "@/lib/db";
 import User from "@/model/user";
 import crypto from "crypto";
 
@@ -14,7 +14,7 @@ sgMail.setApiKey(SENDGRID_API_KEY);
 
 export async function POST(req: NextRequest) {
     try {
-        await dbConnect();
+        await connectDB();
 
         // 1. Verify the requester is an Admin
         const token = req.cookies.get("token")?.value;
@@ -22,11 +22,12 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ "success": false, "message": "Unauthorized" }, { status: 401 });
         }
 
-        let decoded: any;
+        let decoded: { id: string, email: string, role: string };
         try {
-            decoded = jwt.verify(token, JWT_SECRET);
-        } catch (err) {
-            return NextResponse.json({ "success": false, "message": "Invalid token" }, { status: 401 });
+            decoded = jwt.verify(token, JWT_SECRET) as { id: string, email: string, role: string };
+        } catch (error) {
+            console.error("Token verification failed", error);
+            return NextResponse.json({ success: false, message: "Invalid token" }, { status: 401 });
         }
 
         const admin = await User.findById(decoded.id);
@@ -80,9 +81,9 @@ export async function POST(req: NextRequest) {
         try {
             await sgMail.send(msg);
             console.log(`Invite email sent to ${email}`);
-        } catch (error: any) {
-            console.error("SendGrid Error:", error.response?.body || error);
-            return NextResponse.json({ "success": false, "message": "Failed to send invitation email" }, { status: 500 });
+        } catch (error) {
+            console.error("SendGrid Error:", error);
+            return NextResponse.json({ success: false, message: "Failed to send invitation email" }, { status: 500 });
         }
 
         return NextResponse.json({
